@@ -36,12 +36,17 @@ def generate_ai_news(user):
     
     return completion.choices[0].message.content.strip('\"')
 
-# for user in users:
-#     news = generate_ai_news(user)
-#     print(news)
-#     user['news'].append({
-#         "description": news
-#     })
+for user in users:
+    news = generate_ai_news(user)
+    print(f"{user['name']}, {news}")
+    user['news'].append({
+        "description": news
+    })
     
-# def update_user():
-#     response = requests
+def update_user(user):
+    response = requests.put(f"{swd2023_api_url}/users/{user['id']}", json=user)
+    return True if response.status_code == 200 else False
+
+for user in users:
+    success = update_user(user)
+    print(f"User  {user['name']} updated? {success}!")
