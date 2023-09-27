@@ -2,9 +2,10 @@ import os
 from dotenv import load_dotenv
 import openai
 import pandas as pd
-import requests
 import json
-
+from ETL.extract import get_user
+from ETL.load import update_user
+from ETL.transform import generate_ai_news
 
 load_dotenv('app/config/.env')
 
@@ -12,41 +13,64 @@ api_openai = os.getenv('api_open_ai')
 swd2023_api_url = os.getenv('swd_url')
 openai.api_key = api_openai
 
-#EXTRACT
-
-df = pd.read_csv('app/SWD2023.csv')
-user_ids = df['UserID'].tolist()
-print(user_ids)
-
-def get_user(id):
-    response = requests.get(f'{swd2023_api_url}/users/{id}')
-    return response.json() if response.status_code == 200 else None
-
-users = [user for id in user_ids if (user := get_user(id)) is not None]
-print(json.dumps(users, indent=2))
-
-def generate_ai_news(user):
-    completion = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=[
-            {'role': 'system', 'content': 'Voce é um especialista em marketing bancário'},
-            {'role': 'user', 'content': f"Crie uma mensagem para {user['name']} sobre a importância dos investimentos (máximo de 100 caracteres)"}
-        ]
-    )
+while True:
+    print("Menu:")
+    print("1. Extrair informações dos usuários")
+    print("2. Implementar novas mensagens")
+    print("3. Enviar mensagens para API")
+    print("4. Sair")
     
-    return completion.choices[0].message.content.strip('\"')
-
-for user in users:
-    news = generate_ai_news(user)
-    print(f"{user['name']}, {news}")
-    user['news'].append({
-        "description": news
-    })
+    insert = input('Insira o procedimento que deseja executar (1-3): ')
     
-def update_user(user):
-    response = requests.put(f"{swd2023_api_url}/users/{user['id']}", json=user)
-    return True if response.status_code == 200 else False
+    if insert == '1':
+        print("Você escolheu a Opção 1")
+        df = pd.read_csv('app/SWD2023.csv')
+        user_ids = df['UserID'].tolist()
+        print(user_ids)
+        users = [user for id in user_ids if (user := get_user(id)) is not None]
+        print(json.dumps(users, indent=2))
+        
+    elif insert == '2':
+        print("Você escolheu a Opção 2")
+        for user in users:
+            news = generate_ai_news(user)
+            print(f"{user['name']}, {news}")
+            user['news'].append({
+                "description": news
+            })
+        
+    elif insert == '3':
+        print("Você escolheu a Opção 3")
+        for user in users:
+            success = update_user(user)
+            print(f"User  {user['name']} updated? {success}!")
+            
+    elif insert == '4':
+        print('Saindo do programa!')
+        break
 
-for user in users:
-    success = update_user(user)
-    print(f"User  {user['name']} updated? {success}!")
+
+
+# #EXTRACT
+# df = pd.read_csv('app/SWD2023.csv')
+# user_ids = df['UserID'].tolist()
+# print(user_ids)
+# users = [user for id in user_ids if (user := get_user(id)) is not None]
+# print(json.dumps(users, indent=2))
+
+# #TRANSFORM
+
+# for user in users:
+#     news = generate_ai_news(user)
+#     print(f"{user['name']}, {news}")
+#     user['news'].append({
+#         "description": news
+#     })
+
+# #LOAD
+
+
+
+# for user in users:
+#     success = update_user(user)
+#     print(f"User  {user['name']} updated? {success}!")
